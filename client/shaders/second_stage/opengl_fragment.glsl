@@ -132,8 +132,8 @@ struct Frame {
     vec3 x, y, z;
 };
 
-const float _MaxDistance = 1000.0;
-const float _Step = 0.5;
+const float _MaxDistance = 100000.0;
+const float _Step = 0.05;
 const float _Thickness = 0.05;
 const float _Bias = 0.05;
 const float _Near = 1.0;
@@ -165,11 +165,11 @@ vec3 posFromDepth(vec2 uv, float depth) {
 
 vec2 projectPos(vec3 pos) {
     vec4 projected = mCameraViewProj * vec4(pos, 1.0);
-    return (projected.xy / projected.w);// * 0.5 + 0.5;
+    return (projected.xy / projected.w) * 0.5 + 0.5;
 }
 
-vec3 worldPos(vec2 screen_pos) {
-    vec4 position = mCameraViewProjInv * vec4((screen_pos - 0.5) * 2.0, texture2D(depthmap, screen_pos).x, 1.0);
+vec3 worldPos(vec2 pos) {
+    vec4 position = mCameraViewProjInv * vec4((pos - 0.5) * 2.0, texture2D(depthmap, pos).x, 1.0);
     return position.xyz / position.w;
 }
 
@@ -190,50 +190,83 @@ void main(void)
 
         // vec2 reflection_uv = uv;
         vec4 color = skyBgColor;
-        vec3 ray_step = _Step * dir;
-        vec3 march_position = position.xyz + ray_step;
+        // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+        // vec4 color = vec4(1.0, 0.0, 1.0, 1.0);
+        // vec3 ray_step = _Step * dir;
+        vec3 march_position = position.xyz;
+        float ray_length = _Step;
         // float current_depth = depth;
         float atten = 0.0;
 
-        // for (float i = _Step; i < _MaxDistance; i += _Step) {
-        int i = 0;
-        for (; i < 1000; i++) {
+        // for (float i = s; i < _MaxDistance; i += s) {
+        while (ray_length < _MaxDistance) {
+        // int i = 0;
+        // for (; i < _MaxDistance; i++) {
+            // color.rgb += vec3(1.0 / _MaxDistance);
             // march_position = i * dir;
+            march_position = position.xyz + dir * ray_length;
 
             // vec4 projected_ndc = mCameraViewProj * (position + vec4(march_position, 1.0));
-            vec4 projected_ndc = mCameraViewProj * vec4(march_position, 1.0);
-            vec2 sample_uv = (projected_ndc.xy / projected_ndc.w) * 0.5 + 0.5;
+            vec2 sample_uv = projectPos(march_position);
+
+            // float screen_depth = texture2D(depthmap, sample_uv).z;
+            // float target_depth = march_position.z;
+            // float screen_depth = projected_ndc.z / projected_ndc.w;
+            float screen_depth = worldPos(sample_uv).z;
+            float target_depth = march_position.z - 100;
             // float screen_depth = texture2D(depthmap, sample_uv).x;
-            // float screen_depth = (mCameraViewProjInv * vec4(sample_uv, texture2D(depthmap, sample_uv), 1.0)).
-            float screen_depth = abs(worldPos(sample_uv).z);
-            float target_depth = abs(projected_ndc.z);
+            // float target_depth = march_position.z;
+            // float screen_depth = texture2D(depthmap, sample_uv).x;
+            // float target_depth = ((dir * _MaxDistance).y * position.y) / (march_position - position.xyz);
 
-            // float depth_diff = screen_depth - current_depth;
-            // if (depth_diff > 0.0 && depth_diff < target_depth - current_depth + _Thickness) {
-            //     reflection_uv = sample_uv;
-            //     atten = 1.0 - i / _MaxDistance;
+
+            // if (abs(sample_uv.x) > 1 && abs(sample_uv.y) > 1) {
+            //     color = vec4(1.0, 1.0, 0.0, 1.0);
             //     break;
             // }
 
-            // current_depth = target_depth;
-            // if (current_depth > 1.0) {
-            //     atten = 1.0;
+            // if (texture2D(depthmap, sample_uv).x < 0.0) {
+            //     // color = vec4(1.0, 0.0, 1.0, 1.0);
+            //     // break;
+            // }
+
+            // color.rgb = vec3((target_depth / 1000));
+            // color.rgb = vec3((screen_depth / 1000));
+            // color.rgb = vec3((target_depth - screen_depth));
+            // if (uv.x < 0.5) {
+            //     color.rgb = vec3(target_depth / 1000);
+            // } else {
+            //     color.rgb = vec3(screen_depth / 1000);
+            // }
+
+            // if (texture2D(depthmap, sample_uv).z > 1.0) {
+            //     color = texture2D(rendered, uv);
             //     break;
             // }
 
-            if (screen_depth - target_depth < 0.05) {
+
+            // float delta = target_depth - screen_depth;
+            // if (delta > 0 && delta < 0.05) {
+            if ((screen_depth - target_depth) < 0.01) {
+            // if (screen_depth < target_depth) {
+            // if (target_depth > screen_depth) {
             // if (screen_depth < 0.99) {
             // if (abs(screen_depth - projected_ndc.z) < _Thickness) {
             // if ((target_depth - screen_depth) < _Thickness) {
                 // reflection_uv = sample_uv;
                 color = texture2D(rendered, sample_uv);
+                // color.rgb = vec3(target_depth / 1000);
+                // atten = 1.0 - ray_length / _MaxDistance;
+                // color = vec4(0.0, 1.0, 0.0, 1.0);
                 // float d = mapDepth(screen_depth);
                 // color = vec4(d, d, d, 1.0);
                 // atten = 1.0 - i / _MaxDistance;
                 break;
             }
 
-            march_position += ray_step;
+            // march_position += ray_step;
+            // s *= 1.05;
+            ray_length *= 1.01;
 
             // if (target_depth > 1.0) {
             //     atten = 1.0;
@@ -243,10 +276,13 @@ void main(void)
 
         // gl_FragColor = vec4(texture2D(rendered, reflection_uv).rgb * atten, 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
+        // gl_FragColor = vec4(march_position.xyz / 1000, 1.0);
+        // gl_FragColor = vec4(mix(color.rgb, march_position.xyz / 1000, 0.5), 1.0);
+        // gl_FragColor = vec4(mix(color.rgb, dir.xyz, 0.5), 1.0);
         // gl_FragColor = vec4(dir.rgb, 1.0);
         // gl_FragColor = mix(vec4(color.rgb, 1.0), vec4(dir.xyz, 1.0), 0.5);
         // gl_FragColor = vec4(mix(texture2D(rendered, reflection_uv).rgb, position.xyz, 0.1), 1.0);
-        // gl_FragColor = vec4(uv, 0.0, 1.0);
+        // gl_FragColor = vec4(reflection_uv, 0.0, 1.0);
         // gl_FragColor = vec4((reflection_uv + 1) / 2, 0.0, 1.0);
         
         // gl_FragColor = vec4(position.xyz, 1.0);
