@@ -150,6 +150,10 @@ float mapDepth(float depth)
 	return min(1., 1. / (1.00001 - depth) / 1000.0);
 }
 
+float noise(vec3 uvd) {
+	return fract(dot(sin(uvd * vec3(13041.19699, 27723.29171, 61029.77801)), vec3(73137.11101, 37312.92319, 10108.89991)));
+}
+
 vec2 projectOnScreen(vec3 eye, vec3 point) {
     vec3 toPoint = (point - eye);
     point = (point - toPoint * (1.0 - _Near / dot(toPoint, _Camera.z)));
@@ -173,125 +177,90 @@ vec3 worldPos(vec2 pos) {
     return position.xyz / position.w;
 }
 
+vec4 perm(vec4 x)
+{
+	return mod(((x * 34.0) + 1.0) * x, 289.0);
+}
+
+float snoise(vec3 p)
+{
+	vec3 a = floor(p);
+	vec3 d = p - a;
+	d = d * d * (3.0 - 2.0 * d);
+
+	vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);
+	vec4 k1 = perm(b.xyxy);
+	vec4 k2 = perm(k1.xyxy + b.zzww);
+
+	vec4 c = k2 + a.zzzz;
+	vec4 k3 = perm(c);
+	vec4 k4 = perm(c + 1.0);
+
+	vec4 o1 = fract(k3 * (1.0 / 41.0));
+	vec4 o2 = fract(k4 * (1.0 / 41.0));
+
+	vec4 o3 = o2 * d.z + o1 * (1.0 - d.z);
+	vec2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
+
+	return o4.y * d.y + o4.x * (1.0 - d.y);
+}
+
+uniform float animationTimer;
+
 void main(void)
 {
 	vec2 uv = varTexCoord.st;
 	vec4 mask = texture2D(water_mask, uv).rgba;
+    vec4 color = texture2D(rendered, uv).rgba;
 
     // if (mask == vec4(1.0)) { // This somehow catches the sun color ........... somehow
     if (mask == vec4(1.0, 0.0, 1.0, 1.0)) {
-        // float depth = texture2D(depthmap, uv).x;
-        vec3 normal = normalize(mat3(mCameraView) * texture2D(normalmap, uv).xyz);
-        // vec4 position = mCameraViewProjInv * vec4((uv - 0.5) * 2.0, depth, 1.0);
-        // position.xyz /= position.w;
+        color = skyBgColor;
         vec3 position = worldPos(uv);
+        vec3 normal = normalize(mat3(mCameraView) * texture2D(normalmap, uv).xyz);
+        // normal.x *= sin((position * mat3(mCameraView)).x);
+        // normal.x +=  0.1 * cos(((position * mat3(mCameraView)).x) / 16 + animationTimer * 250);
+        // normal.z +=  0.1 * sin(((position * mat3(mCameraView)).z) / 12 + animationTimer * 250);
+        // normal.x += noise(position + animationTimer * 100) / 500;
+        // normal.x += (snoise((position * mat3(mCameraView) / 16 + animationTimer * 100) ) * 0.1) - 0.05;
+        // normal.z += (snoise((position * mat3(mCameraView)) / 32 + animationTimer * 100) * 0.1) - 0.1;
+        vec3 dir = reflect(normalize(position), normal);
 
-        vec3 dir = normalize(reflect(normalize(position.xyz), normal));
+        // float ray_length = _Step;
+        float ray_length = length(position) * _Step;
+        float stp = _Step;
+        vec3 march_position = position;
 
-        // vec2 reflection_uv = uv;
-        vec4 color = skyBgColor;
-        // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-        // vec4 color = vec4(1.0, 0.0, 1.0, 1.0);
-        // vec3 ray_step = _Step * dir;
-        vec3 march_position = position.xyz;
-        float ray_length = _Step;
-        // float current_depth = depth;
-        float atten = 0.0;
+        vec2 sample_uv;
+        float screen_depth, target_depth;
 
-        // for (float i = s; i < _MaxDistance; i += s) {
         while (ray_length < _MaxDistance) {
-        // int i = 0;
-        // for (; i < _MaxDistance; i++) {
-            // color.rgb += vec3(1.0 / _MaxDistance);
-            // march_position = i * dir;
-            march_position = position.xyz + dir * ray_length;
+        // for (int i = 0; i < 1000; i++) {
+            march_position = position + dir * ray_length;
+            sample_uv = projectPos(march_position);
 
-            // vec4 projected_ndc = mCameraViewProj * (position + vec4(march_position, 1.0));
-            vec2 sample_uv = projectPos(march_position);
+            screen_depth = worldPos(sample_uv).z;
+            target_depth = march_position.z; // WHY???
 
-            // float screen_depth = texture2D(depthmap, sample_uv).z;
-            // float target_depth = march_position.z;
-            // float screen_depth = projected_ndc.z / projected_ndc.w;
-            float screen_depth = worldPos(sample_uv).z;
-            float target_depth = march_position.z - 100;
-            // float screen_depth = texture2D(depthmap, sample_uv).x;
-            // float target_depth = march_position.z;
-            // float screen_depth = texture2D(depthmap, sample_uv).x;
-            // float target_depth = ((dir * _MaxDistance).y * position.y) / (march_position - position.xyz);
-
-
-            // if (abs(sample_uv.x) > 1 && abs(sample_uv.y) > 1) {
-            //     color = vec4(1.0, 1.0, 0.0, 1.0);
-            //     break;
-            // }
-
-            // if (texture2D(depthmap, sample_uv).x < 0.0) {
-            //     // color = vec4(1.0, 0.0, 1.0, 1.0);
-            //     // break;
-            // }
-
-            // color.rgb = vec3((target_depth / 1000));
-            // color.rgb = vec3((screen_depth / 1000));
-            // color.rgb = vec3((target_depth - screen_depth));
-            // if (uv.x < 0.5) {
-            //     color.rgb = vec3(target_depth / 1000);
-            // } else {
-            //     color.rgb = vec3(screen_depth / 1000);
-            // }
-
-            // if (texture2D(depthmap, sample_uv).z > 1.0) {
-            //     color = texture2D(rendered, uv);
-            //     break;
-            // }
-
-
-            // float delta = target_depth - screen_depth;
-            // if (delta > 0 && delta < 0.05) {
-            if ((screen_depth - target_depth) < 0.01) {
+            // if ((screen_depth - target_depth) < 0.05) {
+            // color.rgb = vec3(texture2D(depthmap, sample_uv).x);
+            // color.rgb = vec3(screen_depth / 1000);
+                // color.rgb = vec3(abs(screen_depth - target_depth));
+            // color.rgb = position.xyz;
+            if ((screen_depth - target_depth) < 0.0001) {
+            // if (march_position.z / screen_depth > 1.05) {
             // if (screen_depth < target_depth) {
-            // if (target_depth > screen_depth) {
-            // if (screen_depth < 0.99) {
-            // if (abs(screen_depth - projected_ndc.z) < _Thickness) {
-            // if ((target_depth - screen_depth) < _Thickness) {
-                // reflection_uv = sample_uv;
+                // color = vec4(march_position, 1);
                 color = texture2D(rendered, sample_uv);
-                // color.rgb = vec3(target_depth / 1000);
-                // atten = 1.0 - ray_length / _MaxDistance;
-                // color = vec4(0.0, 1.0, 0.0, 1.0);
-                // float d = mapDepth(screen_depth);
-                // color = vec4(d, d, d, 1.0);
-                // atten = 1.0 - i / _MaxDistance;
                 break;
             }
 
-            // march_position += ray_step;
-            // s *= 1.05;
-            ray_length *= 1.01;
-
-            // if (target_depth > 1.0) {
-            //     atten = 1.0;
-            //     break;
-            // }
+            ray_length += stp;
+            stp *= 1.01;
         }
 
-        // gl_FragColor = vec4(texture2D(rendered, reflection_uv).rgb * atten, 1.0);
-        gl_FragColor = vec4(color.rgb, 1.0);
-        // gl_FragColor = vec4(march_position.xyz / 1000, 1.0);
-        // gl_FragColor = vec4(mix(color.rgb, march_position.xyz / 1000, 0.5), 1.0);
-        // gl_FragColor = vec4(mix(color.rgb, dir.xyz, 0.5), 1.0);
-        // gl_FragColor = vec4(dir.rgb, 1.0);
-        // gl_FragColor = mix(vec4(color.rgb, 1.0), vec4(dir.xyz, 1.0), 0.5);
-        // gl_FragColor = vec4(mix(texture2D(rendered, reflection_uv).rgb, position.xyz, 0.1), 1.0);
-        // gl_FragColor = vec4(reflection_uv, 0.0, 1.0);
-        // gl_FragColor = vec4((reflection_uv + 1) / 2, 0.0, 1.0);
-        
-        // gl_FragColor = vec4(position.xyz, 1.0);
-        // gl_FragColor = vec4(dir, 1.0);
-        // gl_FragColor = vec4(0, 0, mapDepth(position.z), 1.0);
-        // float d = (1 / (1 - texture2D(depthmap, uv).x) / 1000);
-        // float d = texture2D(depthmap, uv).x;
-        // gl_FragColor = vec4(d, d, d, 1.0);
-        return;
+        // gl_FragColor = vec4(color.rgb, 1.0);
+        // return;
         
         
                 //     // vec3 normal = normalize(texture2D(normalmap, uv).xyz);
@@ -502,13 +471,13 @@ void main(void)
     }
     
 #ifdef ENABLE_SSAA
-	vec4 color = vec4(0.);
+	// vec4 color = vec4(0.);
 	for (float dx = 1.; dx < SSAA_SCALE; dx += 2.)
 	for (float dy = 1.; dy < SSAA_SCALE; dy += 2.)
-		color += texture2D(rendered, uv + texelSize0 * vec2(dx, dy)).rgba;
+		// color += texture2D(rendered, uv + texelSize0 * vec2(dx, dy)).rgba;
 	color /= SSAA_SCALE * SSAA_SCALE / 4.;
 #else
-	vec4 color = texture2D(rendered, uv).rgba;
+	// vec4 color = texture2D(rendered, uv).rgba;
 #endif
 
 	// translate to linear colorspace (approximate)
