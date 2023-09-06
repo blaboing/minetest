@@ -384,7 +384,6 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<float, 3> m_minimap_yaw;
 	CachedPixelShaderSetting<float, 3> m_camera_offset_pixel;
 	CachedPixelShaderSetting<float, 3> m_camera_offset_vertex;
-	CachedPixelShaderSetting<float, 3> m_camera_position_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_view_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_viewinv_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_viewproj_pixel;
@@ -459,7 +458,6 @@ public:
 		m_minimap_yaw("yawVec"),
 		m_camera_offset_pixel("cameraOffset"),
 		m_camera_offset_vertex("cameraOffset"),
-		m_camera_position_pixel("cameraPosition"),
         m_camera_view_pixel("mCameraView"),
         m_camera_viewinv_pixel("mCameraViewInv"),
         m_camera_viewproj_pixel("mCameraViewProj"),
@@ -573,14 +571,6 @@ public:
 		m_camera_offset_pixel.set(camera_offset_array, services);
 		m_camera_offset_vertex.set(camera_offset_array, services);
 
-		v3f camera_position_vector = m_client->getCamera()->getPosition();
-		float camera_position[3] = {
-				camera_position_vector.X,
-				camera_position_vector.Y,
-				camera_position_vector.Z
-		};
-		m_camera_position_pixel.set(camera_position, services);
-
         core::matrix4 camera_view = m_client->getCamera()->getCameraNode()->getViewMatrix();
         m_camera_view_pixel.set(*reinterpret_cast<float (*)[16]>(camera_view.pointer()), services);
 
@@ -640,8 +630,6 @@ public:
 		auto camera_node = m_client->getCamera()->getCameraNode();
 		core::matrix4 transform = camera_node->getProjectionMatrix();
 		transform *= camera_node->getViewMatrix();
-
-		m_client->getCamera()->getPosition();
 
 		if (m_sky->getSunVisible()) {
 			v3f sun_position = camera_node->getAbsolutePosition() + 

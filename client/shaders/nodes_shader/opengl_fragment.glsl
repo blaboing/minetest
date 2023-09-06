@@ -466,5 +466,13 @@ void main(void)
 	color = mix(skyBgColor.rgb, color, clarity);
 
 	gl_FragData[0] = vec4(color, base.a);
+
+#if (MATERIAL_TYPE == TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT || MATERIAL_TYPE == TILE_MATERIAL_WAVING_LIQUID_OPAQUE || MATERIAL_TYPE == TILE_MATERIAL_WAVING_LIQUID_BASIC) || (MATERIAL_TYPE == TILE_MATERIAL_LIQUID_TRANSPARENT || MATERIAL_TYPE == TILE_MATERIAL_LIQUID_OPAQUE || MATERIAL_TYPE == TILE_MATERIAL_LIQUID_BASIC)
+    gl_FragData[2] = vec4(1.0, 0.0, 1.0, 1.0);
+    // FIXME: Give water actual normals.
+    gl_FragData[1] = vec4(0.0, 1.0, 0.0, 1.0);
+#else
     gl_FragData[1] = vec4(vNormal, base.a);
+#endif
+
 }
