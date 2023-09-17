@@ -393,10 +393,6 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture1;
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture2;
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture3;
-	CachedPixelShaderSetting<SamplerLayer_t> m_texture4;
-	CachedPixelShaderSetting<SamplerLayer_t> m_texture5;
-	// CachedPixelShaderSetting<SamplerLayer_t> m_texture6;
-	// CachedPixelShaderSetting<SamplerLayer_t> m_texture7;
 	CachedVertexShaderSetting<float, 2> m_texel_size0_vertex;
 	CachedPixelShaderSetting<float, 2> m_texel_size0_pixel;
 	std::array<float, 2> m_texel_size0_values;
@@ -468,10 +464,6 @@ public:
 		m_texture1("texture1"),
 		m_texture2("texture2"),
 		m_texture3("texture3"),
-		m_texture4("texture4"),
-		m_texture5("texture5"),
-		// m_texture6("texture6"),
-		// m_texture7("texture7"),
 		m_texel_size0_vertex("texelSize0"),
 		m_texel_size0_pixel("texelSize0"),
 		m_exposure_params_pixel("exposureParams",
@@ -604,14 +596,6 @@ public:
 		m_texture2.set(&tex_id, services);
 		tex_id = 3;
 		m_texture3.set(&tex_id, services);
-		tex_id = 4;
-		m_texture4.set(&tex_id, services);
-		tex_id = 5;
-		m_texture5.set(&tex_id, services);
-		// tex_id = 6;
-		// m_texture6.set(&tex_id, services);
-		// tex_id = 7;
-		// m_texture7.set(&tex_id, services);
 
 		m_texel_size0_vertex.set(m_texel_size0_values.data(), services);
 		m_texel_size0_pixel.set(m_texel_size0_values.data(), services);
