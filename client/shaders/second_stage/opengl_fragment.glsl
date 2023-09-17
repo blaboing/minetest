@@ -27,6 +27,9 @@ uniform mat4 mCameraViewInv;
 uniform mat4 mCameraViewProj;
 uniform mat4 mCameraViewProjInv;
 
+uniform vec3 cameraPosition;
+uniform vec3 cameraOffset;
+
 uniform float animationTimer;
 
 #ifdef GL_ES
@@ -145,8 +148,8 @@ void main(void)
 	vec2 uv = varTexCoord.st;
     vec2 render_uv = uv;
 	vec4 mask = texture2D(water_mask, uv).rgba;
-	vec4 color = vec4(0.0);
-    // vec4 color = texture2D(rendered, uv).rgba;
+	// vec4 color = vec4(0.0);
+    vec4 color = texture2D(rendered, uv).rgba;
 
     // if (mask == vec4(1.0)) { // This somehow catches the sun color ........... somehow
     if (mask == vec4(1.0, 0.0, 1.0, 1.0)) {
@@ -154,10 +157,23 @@ void main(void)
 
         vec3 position = worldPos(uv);
         vec3 normal = normalize(mat3(mCameraView) * texture2D(normalmap, uv).xyz);
-        // normal.x += (snoise((position * mat3(mCameraViewInv)) ) * 0.1) - 0.05;
+        vec4 real_pos = vec4(position, 1.0) * mCameraViewInv;
+        // normal.x += snoise((position * mat3(mCameraViewInv)) / 10) ;
+        // normal.x += (snoise((position * mat3(mCameraView) / 16 + animationTimer * 100) ) * 0.1) - 0.05;
+
+	// vec3 wavePos = (mWorld * pos).xyz + cameraOffset;
+
+	// wavePos.x /= WATER_WAVE_LENGTH * 3.0;
+	// wavePos.z /= WATER_WAVE_LENGTH * 2.0;
+	// wavePos.z += animationTimer * WATER_WAVE_SPEED * 10.0;
+	// pos.y += (snoise(wavePos) - 1.0) * WATER_WAVE_HEIGHT * 5.0;
+
+        // normal.x += (snoise((position * mat3(mCameraView) + cameraPosition)));
+        normal.x += (snoise((vec3(position.x / 20, position.y, position.z / 20 + animationTimer * 100) * mat3(mCameraView)))) / 20;
 
         vec3 ray_step = reflect(normalize(position), normal);
         float ray_length = length(position) * 0.05;
+        float start_depth = texture2D(depthmap, uv).x;
         // float ray_length = _Step;
 
         float stp = _Step;
@@ -170,13 +186,17 @@ void main(void)
             march_position = position + ray_step * ray_length;
             sample_uv = projectPos(march_position);
 
+            if (sample_uv.x > 1 || sample_uv.x < 0 || sample_uv.y > 1 || sample_uv.y < 0) {
+                break;
+            }
+
             screen_depth = worldPos(sample_uv).z;
             target_depth = march_position.z;
 
             // if ((screen_depth - target_depth) < 0.0005) {
-            if (march_position.z / screen_depth > 1.01) {
-                // color = texture2D(rendered, sample_uv);
-                render_uv = sample_uv;
+            if (texture2D(depthmap, sample_uv).x > start_depth && march_position.z / screen_depth > 1.01) {
+                color = texture2D(rendered, sample_uv);
+                // render_uv = sample_uv;
                 break;
             }
 
@@ -185,15 +205,15 @@ void main(void)
         }
     }
 
-#ifdef ENABLE_SSAA
-	color = vec4(0.);
-	for (float dx = 1.; dx < SSAA_SCALE; dx += 2.)
-	for (float dy = 1.; dy < SSAA_SCALE; dy += 2.)
-    color += texture2D(rendered, render_uv + texelSize0 * vec2(dx, dy)).rgba;
-	color /= SSAA_SCALE * SSAA_SCALE / 4.;
-#else
-	color = texture2D(rendered, render_uv).rgba;
-#endif
+// #ifdef ENABLE_SSAA
+// 	color = vec4(0.);
+// 	for (float dx = 1.; dx < SSAA_SCALE; dx += 2.)
+// 	for (float dy = 1.; dy < SSAA_SCALE; dy += 2.)
+//     color += texture2D(rendered, render_uv + texelSize0 * vec2(dx, dy)).rgba;
+// 	color /= SSAA_SCALE * SSAA_SCALE / 4.;
+// #else
+	// color = texture2D(rendered, render_uv).rgba;
+// #endif
 
 	// translate to linear colorspace (approximate)
 	color.rgb = pow(color.rgb, vec3(2.2));

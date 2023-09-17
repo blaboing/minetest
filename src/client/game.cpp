@@ -384,6 +384,7 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<float, 3> m_minimap_yaw;
 	CachedPixelShaderSetting<float, 3> m_camera_offset_pixel;
 	CachedPixelShaderSetting<float, 3> m_camera_offset_vertex;
+	CachedPixelShaderSetting<float, 3> m_camera_position_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_view_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_viewinv_pixel;
 	CachedPixelShaderSetting<float, 16> m_camera_viewproj_pixel;
@@ -394,8 +395,8 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture3;
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture4;
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture5;
-	CachedPixelShaderSetting<SamplerLayer_t> m_texture6;
-	CachedPixelShaderSetting<SamplerLayer_t> m_texture7;
+	// CachedPixelShaderSetting<SamplerLayer_t> m_texture6;
+	// CachedPixelShaderSetting<SamplerLayer_t> m_texture7;
 	CachedVertexShaderSetting<float, 2> m_texel_size0_vertex;
 	CachedPixelShaderSetting<float, 2> m_texel_size0_pixel;
 	std::array<float, 2> m_texel_size0_values;
@@ -458,6 +459,7 @@ public:
 		m_minimap_yaw("yawVec"),
 		m_camera_offset_pixel("cameraOffset"),
 		m_camera_offset_vertex("cameraOffset"),
+        m_camera_position_pixel("cameraPosition"),
         m_camera_view_pixel("mCameraView"),
         m_camera_viewinv_pixel("mCameraViewInv"),
         m_camera_viewproj_pixel("mCameraViewProj"),
@@ -468,8 +470,8 @@ public:
 		m_texture3("texture3"),
 		m_texture4("texture4"),
 		m_texture5("texture5"),
-		m_texture6("texture6"),
-		m_texture7("texture7"),
+		// m_texture6("texture6"),
+		// m_texture7("texture7"),
 		m_texel_size0_vertex("texelSize0"),
 		m_texel_size0_pixel("texelSize0"),
 		m_exposure_params_pixel("exposureParams",
@@ -571,19 +573,27 @@ public:
 		m_camera_offset_pixel.set(camera_offset_array, services);
 		m_camera_offset_vertex.set(camera_offset_array, services);
 
+		v3f camera_position_vector = m_client->getCamera()->getPosition();
+		float camera_position[3] = {
+				camera_position_vector.X,
+				camera_position_vector.Y,
+				camera_position_vector.Z
+		};
+		m_camera_position_pixel.set(camera_position, services);
+
         core::matrix4 camera_view = m_client->getCamera()->getCameraNode()->getViewMatrix();
-        m_camera_view_pixel.set(*reinterpret_cast<float (*)[16]>(camera_view.pointer()), services);
+        m_camera_view_pixel.set(camera_view.pointer(), services);
 
         core::matrix4 camera_viewinv;
 		camera_view.getInverse(camera_viewinv);
-        m_camera_viewinv_pixel.set(*reinterpret_cast<float (*)[16]>(camera_viewinv.pointer()), services);
+        m_camera_viewinv_pixel.set(camera_viewinv.pointer(), services);
 
         core::matrix4 camera_viewproj = m_client->getCamera()->getCameraNode()->getProjectionMatrix();
-		m_camera_viewproj_pixel.set(*reinterpret_cast<float (*)[16]>(camera_viewproj.pointer()), services);
+		m_camera_viewproj_pixel.set(camera_viewproj.pointer(), services);
 
 		core::matrix4 camera_viewprojinv;
 		camera_viewproj.getInverse(camera_viewprojinv);
-		m_camera_viewprojinv_pixel.set(*reinterpret_cast<float (*)[16]>(camera_viewprojinv.pointer()), services);
+		m_camera_viewprojinv_pixel.set(camera_viewprojinv.pointer(), services);
 
 		SamplerLayer_t tex_id;
 		tex_id = 0;
@@ -598,10 +608,10 @@ public:
 		m_texture4.set(&tex_id, services);
 		tex_id = 5;
 		m_texture5.set(&tex_id, services);
-		tex_id = 6;
-		m_texture6.set(&tex_id, services);
-		tex_id = 7;
-		m_texture7.set(&tex_id, services);
+		// tex_id = 6;
+		// m_texture6.set(&tex_id, services);
+		// tex_id = 7;
+		// m_texture7.set(&tex_id, services);
 
 		m_texel_size0_vertex.set(m_texel_size0_values.data(), services);
 		m_texel_size0_pixel.set(m_texel_size0_values.data(), services);
@@ -630,6 +640,8 @@ public:
 		auto camera_node = m_client->getCamera()->getCameraNode();
 		core::matrix4 transform = camera_node->getProjectionMatrix();
 		transform *= camera_node->getViewMatrix();
+        
+        m_client->getCamera()->getPosition();
 
 		if (m_sky->getSunVisible()) {
 			v3f sun_position = camera_node->getAbsolutePosition() + 
