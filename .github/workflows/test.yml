@@ -104,8 +104,11 @@ jobs:
 
       - name: Checkout IrrlichtMt
         run: |
-          $ref = @(Get-Content misc\irrlichtmt_tag.txt)
           git clone https://github.com/minetest/irrlicht lib\irrlichtmt
+
+      - name: Checkout commit d98dc90b38
+        working-directory: lib\irrlichtmt
+        run: |
           git checkout d98dc90b38
 
       - name: Restore from cache and run vcpkg
