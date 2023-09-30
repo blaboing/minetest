@@ -15,7 +15,7 @@ on:
       - '.github/workflows/**.yml'
       - 'Dockerfile'
       - '.dockerignore'
-      branches:
+    branches:
       - master
   pull_request:
     paths:
@@ -30,7 +30,7 @@ on:
       - '.github/workflows/**.yml'
       - 'Dockerfile'
       - '.dockerignore'
-      branches:
+    branches:
       - master
 
 env:
