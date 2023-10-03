@@ -131,7 +131,7 @@ jobs:
           -DREQUIRE_LUAJIT=TRUE  `
           -DENABLE_PROMETHEUS=TRUE  `
           -BUILD_SERVER=TRUE  `
-          -INSTALL_DEVTEST=TRUE  `
+          -DINSTALL_DEVTEST=TRUE  `
           -USE_SDL2=TRUE  `
           -BUILD_SERVER=TRUE  `
           -DRUN_IN_PLACE=${{ contains(matrix.type, 'portable') }} .
