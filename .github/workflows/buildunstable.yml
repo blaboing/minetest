@@ -79,7 +79,7 @@ jobs:
     env:
       VCPKG_VERSION: 5cf60186a241e84e8232641ee973395d4fde90e1
       # 2022.02
-      vcpkg_packages: zlib zstd curl[winssl] openal-soft libvorbis libogg libjpeg-turbo sqlite3 freetype luajit gmp jsoncpp opengl-registry gettext leveldb prometheus-cpp libpq hiredis ncurses libspatialindex
+      vcpkg_packages: zlib zstd curl[winssl] openal-soft libvorbis libogg libjpeg-turbo sqlite3 freetype luajit gmp jsoncpp opengl-registry gettext leveldb prometheus-cpp libpq hiredis libspatialindex
     strategy:
       fail-fast: false
       matrix:
