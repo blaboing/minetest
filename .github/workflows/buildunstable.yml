@@ -104,12 +104,8 @@ jobs:
 
       - name: Checkout IrrlichtMt
         run: |
-          git clone https://github.com/minetest/irrlicht lib\irrlichtmt
-
-      - name: Checkout commit d98dc90b38
-        working-directory: lib\irrlichtmt
-        run: |
-          git checkout d98dc90b38
+          $ref = @(Get-Content misc\irrlichtmt_tag.txt)
+          git clone https://github.com/minetest/irrlicht lib\irrlichtmt --depth 1 -b $ref[0]
 
       - name: Restore from cache and run vcpkg
         uses: lukka/run-vcpkg@v7
