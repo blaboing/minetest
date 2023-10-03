@@ -79,7 +79,7 @@ jobs:
     env:
       VCPKG_VERSION: 5cf60186a241e84e8232641ee973395d4fde90e1
       # 2022.02
-      vcpkg_packages: zlib zstd curl[winssl] openal-soft libvorbis libogg libjpeg-turbo sqlite3 freetype luajit gmp jsoncpp opengl-registry
+      vcpkg_packages: zlib zstd curl[winssl] openal-soft libvorbis libogg libjpeg-turbo sqlite3 freetype luajit gmp jsoncpp opengl-registry gettext leveldb prometheus-cpp libpq hiredis ncurses libspatialindex
     strategy:
       fail-fast: false
       matrix:
@@ -125,9 +125,19 @@ jobs:
           cmake ${{matrix.config.generator}}  `
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake"  `
           -DCMAKE_BUILD_TYPE=Release  `
-          -DENABLE_POSTGRESQL=OFF  `
+          -DENABLE_CURL=ON  `
+          -DENABLE_GETTEXT=ON  `
+          -DENABLE_POSTGRESQL=ON  `
+          -DENABLE_LEVELDB=ON  `
+          -DENABLE_REDIS=ON  `
+          -DENABLE_SPATIAL=ON  `
           -DENABLE_LUAJIT=TRUE  `
           -DREQUIRE_LUAJIT=TRUE  `
+          -DENABLE_PROMETHEUS=TRUE  `
+          -BUILD_SERVER=TRUE  `
+          -INSTALL_DEVTEST=TRUE  `
+          -USE_SDL2=TRUE  `
+          -BUILD_SERVER=TRUE  `
           -DRUN_IN_PLACE=${{ contains(matrix.type, 'portable') }} .
 
       - name: Build Minetest
